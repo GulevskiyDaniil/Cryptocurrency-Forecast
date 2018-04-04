@@ -13,14 +13,12 @@ typedef Eigen::VectorXd Vec;
 typedef Eigen::ArrayXXd Arr; // Note the double X for arrays, unlie the single X for matrices!
 //typedef Eigen::ArrayXXi Mask;
 
-
-
 // http://www.quantdec.com/misc/MAT8406/Meeting12/SVD.pdf
 Vec Ridge(const Mat& X, const Vec& y, double alpha) {
-  Eigen::BDCSVD<Mat> svd(X, Eigen::ComputeThinU | Eigen::ComputeThinV);
-  Vec singular_values = svd.singularValues();
-  Mat diag = (1.0 / (singular_values.array().square() + alpha) * singular_values.array()).matrix().asDiagonal();
-  return svd.matrixV() * diag * svd.matrixU().transpose() * y;
+    Eigen::BDCSVD<Mat> svd(X, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Vec singular_values = svd.singularValues();
+    Mat diag = (1.0 / (singular_values.array().square() + alpha) * singular_values.array()).matrix().asDiagonal();
+    return svd.matrixV() * diag * svd.matrixU().transpose() * y;
 }
 
 void FStep(const Mat& Y, const Mat& X, const Arr& omega, Mat& F, double lambda, double epsilon, int max_iter) {
@@ -50,64 +48,57 @@ void FStep(const Mat& Y, const Mat& X, const Arr& omega, Mat& F, double lambda, 
 }
 
 
-
 int main() {
-  // Test ridge regression
-  Mat M(7,3);
-  M << 3,5,7,
-       4,6,8,
-       4,4,7,
-       2,4,6,
-       4,7,4,
-       7,4,7,
-       9,5,3;
+    // Test ridge regression
+    Mat M(7,3);
+    M << 3,5,7,
+         4,6,8,
+         4,4,7,
+         2,4,6,
+         4,7,4,
+         7,4,7,
+         9,5,3;
 
-  Vec y(7);
+    Vec y(7);
+    y << 15, 18, 15, 12, 15, 18, 17;
 
-  y << 15, 18, 15, 12, 15, 18, 17;
+    double alpha = 0.01;
 
-  double alpha = 0.01;
+    Vec answer = Ridge(M, y, alpha);
+    std::cout << std::endl << answer << std::endl;
 
-  Vec answer = Ridge(M, y, alpha);
-  std::cout << std::endl << answer << std::endl;
+    // Test coordinate descent: generate F, X , let Y = FX, pretend you dont know true F, solve Y=FX for F with lambda = 0, should get exactly F
+    Arr omega(4, 10); // 1 if known, 0 if missiing
+    omega << 0,1,1,1,0,0,1,1,1,1,
+             1,1,0,1,1,1,0,1,1,1,
+             1,1,1,1,1,1,1,1,1,1,
+             0,1,1,1,1,1,1,0,1,1;
 
+    Mat X(2,10);
+    X << 4,8,2,6,0,3,4,1,5,7,
+         0,5,8,3,2,5,7,9,4,8;
 
-  // Test coordinate descent: generate F, X , let Y = FX, pretend you dont know true F, solve Y=FX for F with lambda = 0, should get exactly F
+    Mat F(4, 2);
+    F << 4,2,
+         3,1,
+         6,2,
+         0,2;
 
-  Arr omega(4, 10); // 1 if known, 0 if missiing
-  omega <<
-    0,1,1,1,0,0,1,1,1,1,
-    1,1,0,1,1,1,0,1,1,1,
-    1,1,1,1,1,1,1,1,1,1,
-    0,1,1,1,1,1,1,0,1,1;
+    Mat Y = (F * X).array() * omega;
 
-  Mat X(2,10);
-  X <<
-    4,8,2,6,0,3,4,1,5,7,
-    0,5,8,3,2,5,7,9,4,8;
+    Mat F_prime(4, 2);
+    F_prime.setRandom();
 
-  Mat F(4, 2);
-  F <<
-    4,2,
-    3,1,
-    6,2,
-    0,2;
+    std::cout << "Starting point for F" << std::endl << F_prime << std::endl;
 
-  Mat Y = (F * X).array() * omega;
+    double lambda_f = 0.0;
+    double epsilon = 0.00001; // tolerance for coordinate descent
+    int max_iter = 100;
 
-  Mat F_prime(4, 2);
-  F_prime.setRandom();
+    FStep(Y, X, omega, F_prime, lambda_f, epsilon, max_iter);
 
-  std::cout << "Starting point for F" << std::endl << F_prime << std::endl;
+    std::cout << "True F" << std::endl << F << std::endl;
+    std::cout << "Recovered F" << std::endl << F_prime << std::endl;
 
-  double lambda_f = 0.0;
-  double epsilon = 0.0001; // tolerance for coordinate descent
-  int max_iter = 100;
-
-  FStep(Y, X, omega, F_prime, lambda_f, epsilon, max_iter);
-
-  std::cout << "True F" << std::endl << F << std::endl;
-  std::cout << "Recovered F" << std::endl << F_prime << std::endl;
-
-  return 0;
+    return 0;
 }
