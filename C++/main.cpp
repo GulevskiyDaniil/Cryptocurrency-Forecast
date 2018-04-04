@@ -10,8 +10,7 @@
 
 typedef Eigen::MatrixXd Mat;
 typedef Eigen::VectorXd Vec;
-typedef Eigen::ArrayXXd Arr; // Note the double X for arrays, unlie the single X for matrices!
-//typedef Eigen::ArrayXXi Mask;
+typedef Eigen::ArrayXXd Arr; // Note the double X for arrays, unlike the single X for matrices!
 
 // http://www.quantdec.com/misc/MAT8406/Meeting12/SVD.pdf
 Vec Ridge(const Mat& X, const Vec& y, double alpha) {
@@ -22,23 +21,17 @@ Vec Ridge(const Mat& X, const Vec& y, double alpha) {
 }
 
 void FStep(const Mat& Y, const Mat& X, const Arr& omega, Mat& F, double lambda, double epsilon, int max_iter) {
-    Mat R(Y.rows(), Y.cols());
-    Arr X_row(1, X.cols());
-    Arr omega_row(1, omega.cols());
-
-    R = Y - F * X;
+    Mat R = Y - F * X;
     for(int i=0; i < max_iter; ++i) {
         double delta_sq = 0;
-        for(int alpha = 0; alpha < F.rows(); ++alpha) {
-            for(int beta = 0; beta < F.cols(); ++beta) {
-                X_row = X.block(beta, 0, 1, X.cols());
-                omega_row = omega.matrix().block(alpha, 0, 1, Y.cols());
-                double denom = lambda + (X_row * X_row * omega_row).matrix().sum();
-                double numer = (X_row * (R.block(alpha, 0, 1, R.cols()).array() + F(alpha, beta) * X_row) * omega_row).matrix().sum();
+        for(int row = 0; row < F.rows(); ++row) {
+            for(int col = 0; col < F.cols(); ++col) {
+                double denom = lambda + (X.row(col).array() * X.row(col).array() * omega.row(row).array()).matrix().sum();
+                double numer = (X.row(col).array() * (R.row(row).array() + F(row, col) * X.row(col).array()) * omega.row(row).array()).matrix().sum();
                 double f = numer/denom;
-                R.block(alpha, 0, 1, R.cols()).array() -= (f - F(alpha, beta)) * X_row;
-                delta_sq += (f - F(alpha, beta)) * (f - F(alpha, beta));
-                F(alpha, beta) = f;
+                R.block(row, 0, 1, R.cols()).array() -= (f - F(row, col)) * X.row(col).array();
+                delta_sq += (f - F(row, col)) * (f - F(row, col));
+                F(row, col) = f;
             }
         }
         if(delta_sq < epsilon) {
@@ -92,8 +85,8 @@ int main() {
     std::cout << "Starting point for F" << std::endl << F_prime << std::endl;
 
     double lambda_f = 0.0;
-    double epsilon = 0.00001; // tolerance for coordinate descent
-    int max_iter = 100;
+    double epsilon = 0.00000001; // tolerance for coordinate descent
+    int max_iter = 1000;
 
     FStep(Y, X, omega, F_prime, lambda_f, epsilon, max_iter);
 
