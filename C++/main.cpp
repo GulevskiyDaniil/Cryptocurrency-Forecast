@@ -41,7 +41,7 @@ void FStep(const Mat& Y, const Mat& X, const Arr& omega, Mat& F, double lambda, 
                 double denom = lambda + (X.row(col).array() * X.row(col).array() * omega.row(row).array()).matrix().sum();
                 double numer = (X.row(col).array() * (R.row(row).array() + F(row, col) * X.row(col).array()) * omega.row(row).array()).matrix().sum();
                 double f = numer/denom;
-                R.block(row, 0, 1, R.cols()).array() -= (f - F(row, col)) * X.row(col).array();
+                R.row(row).array() -= (f - F(row, col)) * X.row(col).array();
                 delta_sq += (f - F(row, col)) * (f - F(row, col));
                 F(row, col) = f;
             }
