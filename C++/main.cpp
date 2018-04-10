@@ -109,11 +109,11 @@ void SparseConjugateGradient(const SpMat& A, const Vec& b, Vec& x, double epsilo
 }
 
 
-
 void WStep(const Mat& X, Mat& W, std::vector<int> lags, double lambda_w, double lambda_x) {
-
+    /*
+    Solves for autoregression weights with given matrix X. All this function does is initialize matrices and vectors for ridge regression
+    */
     std::sort(lags.begin(), lags.end());
-    print_vector(lags);
     int T = X.cols();
     int k = X.rows();
     int l = lags.size();
