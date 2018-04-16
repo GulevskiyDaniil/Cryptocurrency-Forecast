@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <set>
 #include <algorithm>
 #include <Eigen/Eigen> // <Eigen/Dense> for dense only, <Eigen/Sparse> for sparse only, <Eigen/Eigen> for both
 
@@ -133,7 +134,24 @@ void WStep(const Mat& X, Mat& W, std::vector<int> lags, double lambda_w, double 
     }
 }
 
-int main() {
+std::vector<int> GetNnzD(std::vector<int> lags) {
+    /*
+    Returns a std::vector of integers d suvh that delta(d) is not empty
+    */
+    std::set<int> ds_set;
+    std::sort(lags.begin(), lags.end());
+    lags.insert(lags.begin(), 0);
+    for (int i=0; i<lags.size(); ++i) {
+        for (int j=0; j<=i; ++j) {
+            ds_set.insert(lags[i] - lags[j]);
+        }
+    }
+    std::vector<int> ds(ds_set.begin(), ds_set.end());
+    return ds;
+}
+
+
+void tests() {
     // Test ridge regression
 
     std::cout << std::endl << "Test ridge regression" << std::endl;
@@ -238,6 +256,7 @@ int main() {
     lags.push_back(1);
     lags.push_back(7);
     lags.push_back(3);
+    lags.push_back(4);
 
     std::cout << "Lags: " << std::endl;
     print_vector(lags);
@@ -251,5 +270,16 @@ int main() {
     WStep(X, W, lags, lambda_w, lambda_x);
     std::cout << std::endl << W << std::endl;
 
+    std::cout << std::endl << "Test X-step" << std::endl;
+    std::cout << std::endl << "lags" << std::endl;
+    print_vector(lags);
+    std::cout << std::endl << "d's for which delta(d) is not empty:";
+    std::vector<int> ds = GetNnzD(lags);
+    print_vector(ds);
+}
+
+
+int main() {
+    tests();
     return 0;
 }
