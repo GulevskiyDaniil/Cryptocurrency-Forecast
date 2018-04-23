@@ -1,0 +1,15 @@
+#!/bin/sh
+#/Users/macintosh/Desktop/Current/SDA/Algo
+clear;
+rm main.out;
+clear;
+# gcc f.c main.c -o main.out;
+# g++ main.cpp -o main.out -fsanitize=address -std=c++14;
+clang++ main.cpp -I /Users/macintosh/Desktop/Current/SDA/Eigen -fsanitize=address -x c++ -std=c++14 -O2 -Wall -Werror -o main.out
+# g++ main.cpp -o main.out -std=c++14;
+# echo "Compile completed"
+echo "------- Begin -------"
+./main.out
+echo "-------  End  -------"
+# echo "Script finished"
+# g++ main.cpp -o2 -fsanitize=address -std=c++14 && ./main.out
