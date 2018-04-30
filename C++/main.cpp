@@ -164,6 +164,10 @@ std::vector<int> GetNnzD(std::vector<int> lags) {
 
 std::set<int> GetDeltaSet(const std::set<int>& lags, int d){
     std::set<int> deltaset;
+    int lag = 0;
+    if (lag - d == 0) {
+        deltaset.insert(lag);
+    }
     for (int lag : lags) {
         if (lag - d == 0) {
             deltaset.insert(lag);
@@ -171,45 +175,36 @@ std::set<int> GetDeltaSet(const std::set<int>& lags, int d){
             deltaset.insert(lag);
         }
     }
-
-
-    // for (size_t idx=0; idx<lags.size(); ++idx) {
-    //     if (lags[idx] - d == 0) {
-    //         deltaset.insert(lags[idx]);
-    //     } else if (std::find(lags.begin(), lags.begin() + idx, lags[idx] - d) != lags.begin() + idx + 1) {
-    //         std::cout << idx << " - " << lags[idx] << " - " << *(lags.begin() + idx) << ";###  " << std::endl;
-    //     }
-
-
-    //     // if lags[idx] - d
-    //     deltaset.insert(lags[idx]);
-    // }
-
-    // // for (size_t idx=0; idx<lags.size(); ++idx) {
-    // //     bool is_in = deltaset.find(idx) != deltaset.end();
-    // //     std::cout << is_in << ";  " << std::endl;
-    // // }
-
-
     return deltaset;
 }
 
 
 void ModifyG(Mat* G, const Mat& omega, const std::set<int>& lags) {
-    int T = omega.cols();
+    double omega_0 = -1;
+    int T = G->cols();
+    int L = *(std::max_element(lags.begin(), lags.end()));
+    int m = 1 + L;
 
     for (size_t idx=0; idx<G->rows(); ++idx) {
-        for (size_t jdx=idx+1; jdx<G->cols(); ++jdx) {
+        for (size_t jdx=idx; jdx<G->cols(); ++jdx) {
             size_t t = idx + 1;
             size_t d = jdx - idx;
             std::set<int> deltaset = GetDeltaSet(lags, d);
             double value = 0.0;
             if (!deltaset.empty()) {
-                int L = *(std::max_element(deltaset.begin(), deltaset.end()));
-                int m = 1 + L;
                 for (int l : deltaset) {
+                    // std::cout << m << " <= " << t+l << " <= " << T << "; l = " << l << std::endl;
                     if ((m <= (t + l)) && ((t + l) <= T)) {
-                        value += - omega(0,l - 1) * omega(0,l - d - 1);
+                        // std::cout << "l = " << l << " d = " << d << " ( " << l - d << ")" << std::endl;
+                        if ((l - d == 0) && (l == 0)) {
+                            value += - omega_0 * omega_0;
+                        } else if (l - d == 0) {
+                            value += - omega(0,l - 1) * omega_0;
+                        } else if (l == 0) {
+                            value += - omega_0 * omega(0,l - d - 1);
+                        } else {
+                            value += - omega(0,l - 1) * omega(0,l - d - 1);
+                        }
                     }
                 }
             }
@@ -220,22 +215,28 @@ void ModifyG(Mat* G, const Mat& omega, const std::set<int>& lags) {
 }
 
 void ModifyD(Mat* D, const Mat& omega, const std::set<int>& lags) {
-    int T = omega.cols();
+    double omega_0 = -1;
+    int T = D->cols();
     int L = *(std::max_element(lags.begin(), lags.end()));
     int m = 1 + L;
     double omega_sum = 0.0;
 
-    for (size_t idx=0; idx<omega.cols(); ++idx) {
-        omega_sum += omega(0,idx);
-        std::cout << omega_sum << "=  " << std::endl;
+    omega_sum += omega_0;
+    for (int l : lags) {
+        omega_sum += omega(0,l - 1);
     }
+    std::cout << "\nomega_sum: " << omega_sum << std::endl;
 
     for (size_t idx=0; idx<D->rows(); ++idx) {
         size_t t = idx + 1;
         double value = 0.0;
         for (int l : lags) {
             if ((m <= (t + l)) && ((t + l) <= T)) {
-                value += omega_sum * omega(0,l - 1);
+                if (l == 0) {
+                    value += omega_sum * omega_0;
+                } else {
+                    value += omega_sum * omega(0,l - 1);
+                }
             }
         }
         (*D)(t - 1, t - 1) = value;
@@ -246,34 +247,50 @@ void ModifyD(Mat* D, const Mat& omega, const std::set<int>& lags) {
 
 void tests2() {
 
-    std::set<int> lags = {1, 2, 3, 4, 6, 7};
-    auto deltaset = GetDeltaSet(lags, 2);
-    for (auto el : deltaset) {
-        std::cout << el << ",  " << std::endl;
+    std::set<int> lags = {1, 4};
+    for (int delta = 0; delta < 6; ++delta) {
+        std::cout << "delta = " << delta << std::endl;
+        auto deltaset = GetDeltaSet(lags, delta);
+        for (auto el : deltaset) {
+            std::cout << el << ",  ";
+        }
+        std::cout << "\n----------" << std::endl;
+
     }
 
 
-    Mat X(5,5);
-    X << 0,0,0,0,0,
-         0,0,0,0,0,
-         0,0,0,0,0,
-         0,0,0,0,0,
-         0,0,0,0,0;
+    Mat X(10,10);
+    X << 0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0;
+
 
     // X(0,1) = 100;
 
 
-    Mat D(5,5);
-    D << 0,0,0,0,0,
-         0,0,0,0,0,
-         0,0,0,0,0,
-         0,0,0,0,0,
-         0,0,0,0,0;
+    Mat D(10,10);
+    D << 0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0;
 
 
 
-    Mat omega(1, 10); // 1 if known, 0 if missiing
-    omega << 1,1,1,1,1,1,1,1,1,1;
+    Mat omega(1, 4); // 1 if known, 0 if missiing
+    omega << 1,2,3,4;
 
     ModifyG(&X, omega, lags);
     ModifyD(&D, omega, lags);
