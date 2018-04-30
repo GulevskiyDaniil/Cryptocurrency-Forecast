@@ -179,8 +179,8 @@ std::set<int> GetDeltaSet(const std::set<int>& lags, int d){
 }
 
 
-void ModifyG(Mat* G, const Mat& omega, const std::set<int>& lags) {
-    double omega_0 = -1;
+void ModifyG(Mat* G, const Mat& w, const std::set<int>& lags, int w_idx) {
+    double w_0 = -1;
     int T = G->cols();
     int L = *(std::max_element(lags.begin(), lags.end()));
     int m = 1 + L;
@@ -197,13 +197,13 @@ void ModifyG(Mat* G, const Mat& omega, const std::set<int>& lags) {
                     if ((m <= (t + l)) && ((t + l) <= T)) {
                         // std::cout << "l = " << l << " d = " << d << " ( " << l - d << ")" << std::endl;
                         if ((l - d == 0) && (l == 0)) {
-                            value += - omega_0 * omega_0;
+                            value += - w_0 * w_0;
                         } else if (l - d == 0) {
-                            value += - omega(0,l - 1) * omega_0;
+                            value += - w(w_idx,l - 1) * w_0;
                         } else if (l == 0) {
-                            value += - omega_0 * omega(0,l - d - 1);
+                            value += - w_0 * w(w_idx,l - d - 1);
                         } else {
-                            value += - omega(0,l - 1) * omega(0,l - d - 1);
+                            value += - w(w_idx,l - 1) * w(w_idx,l - d - 1);
                         }
                     }
                 }
@@ -214,18 +214,18 @@ void ModifyG(Mat* G, const Mat& omega, const std::set<int>& lags) {
     }
 }
 
-void ModifyD(Mat* D, const Mat& omega, const std::set<int>& lags) {
-    double omega_0 = -1;
+void ModifyD(Mat* D, const Mat& w, const std::set<int>& lags, int w_idx) {
+    double w_0 = -1;
     int T = D->cols();
     int L = *(std::max_element(lags.begin(), lags.end()));
     int m = 1 + L;
-    double omega_sum = 0.0;
+    double w_sum = 0.0;
 
-    omega_sum += omega_0;
+    w_sum += w_0;
     for (int l : lags) {
-        omega_sum += omega(0,l - 1);
+        w_sum += w(w_idx,l - 1);
     }
-    std::cout << "\nomega_sum: " << omega_sum << std::endl;
+    std::cout << "\nomega_sum: " << w_sum << std::endl;
 
     for (size_t idx=0; idx<D->rows(); ++idx) {
         size_t t = idx + 1;
@@ -233,9 +233,9 @@ void ModifyD(Mat* D, const Mat& omega, const std::set<int>& lags) {
         for (int l : lags) {
             if ((m <= (t + l)) && ((t + l) <= T)) {
                 if (l == 0) {
-                    value += omega_sum * omega_0;
+                    value += w_sum * w_0;
                 } else {
-                    value += omega_sum * omega(0,l - 1);
+                    value += w_sum * w(w_idx,l - 1);
                 }
             }
         }
@@ -289,16 +289,16 @@ void tests2() {
 
 
 
-    Mat omega(1, 4); // 1 if known, 0 if missiing
-    omega << 1,2,3,4;
+    Mat w(1, 4); // 1 if known, 0 if missiing
+    w << 1,2,3,4;
 
-    ModifyG(&X, omega, lags);
-    ModifyD(&D, omega, lags);
+    ModifyG(&X, w, lags, 0);
+    ModifyD(&D, w, lags, 0);
 
     std::cout << "True X" << std::endl << X << std::endl;
     std::cout << "True X" << std::endl << D << std::endl;
     std::cout << "X rows" << std::endl << X.rows() << std::endl;
-    std::cout << "omega" << std::endl << omega << std::endl;
+    std::cout << "w"      << std::endl << w << std::endl;
 
 }
 
