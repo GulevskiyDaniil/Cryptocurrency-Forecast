@@ -216,6 +216,7 @@ void ModifyG(Mat* G, const Mat& W, const std::set<int>& lags, int W_idx) {
         size_t t = idx + 1;
         for (size_t d : deltas) {
             if ((d + idx) < G->cols()) {
+                //ToDo save deltaset
                 std::set<int> deltaset = GetDeltaSet(lags, d);
                 double value = 0.0;
                 for (int l : deltaset) {
