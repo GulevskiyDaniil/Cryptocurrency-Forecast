@@ -179,7 +179,7 @@ std::set<int> GetDeltaSet(const std::set<int>& lags, int d){
 }
 
 
-void ModifyG(Mat* G, const Mat& w, const std::set<int>& lags, int w_idx) {
+void ModifyG(Mat* G, const Mat& W, const std::set<int>& lags, int W_idx) {
     double w_0 = -1;
     int T = G->cols();
     int L = *(std::max_element(lags.begin(), lags.end()));
@@ -199,11 +199,11 @@ void ModifyG(Mat* G, const Mat& w, const std::set<int>& lags, int w_idx) {
                         if ((l - d == 0) && (l == 0)) {
                             value += - w_0 * w_0;
                         } else if (l - d == 0) {
-                            value += - w(w_idx,l - 1) * w_0;
+                            value += - W(W_idx,l - 1) * w_0;
                         } else if (l == 0) {
-                            value += - w_0 * w(w_idx,l - d - 1);
+                            value += - w_0 * W(W_idx,l - d - 1);
                         } else {
-                            value += - w(w_idx,l - 1) * w(w_idx,l - d - 1);
+                            value += - W(W_idx,l - 1) * W(W_idx,l - d - 1);
                         }
                     }
                 }
@@ -214,7 +214,7 @@ void ModifyG(Mat* G, const Mat& w, const std::set<int>& lags, int w_idx) {
     }
 }
 
-void ModifyD(Mat* D, const Mat& w, const std::set<int>& lags, int w_idx) {
+void ModifyD(Mat* D, const Mat& W, const std::set<int>& lags, int W_idx) {
     double w_0 = -1;
     int T = D->cols();
     int L = *(std::max_element(lags.begin(), lags.end()));
@@ -223,7 +223,7 @@ void ModifyD(Mat* D, const Mat& w, const std::set<int>& lags, int w_idx) {
 
     w_sum += w_0;
     for (int l : lags) {
-        w_sum += w(w_idx,l - 1);
+        w_sum += W(W_idx,l - 1);
     }
     std::cout << "\nomega_sum: " << w_sum << std::endl;
 
@@ -235,7 +235,7 @@ void ModifyD(Mat* D, const Mat& w, const std::set<int>& lags, int w_idx) {
                 if (l == 0) {
                     value += w_sum * w_0;
                 } else {
-                    value += w_sum * w(w_idx,l - 1);
+                    value += w_sum * W(W_idx,l - 1);
                 }
             }
         }
@@ -289,11 +289,12 @@ void tests2() {
 
 
 
-    Mat w(1, 4); // 1 if known, 0 if missiing
-    w << 1,2,3,4;
+    Mat w(2, 4); // 1 if known, 0 if missiing
+    w << 1,1,1,1,
+         1,2,3,4;
 
-    ModifyG(&X, w, lags, 0);
-    ModifyD(&D, w, lags, 0);
+    ModifyG(&X, w, lags, 1);
+    ModifyD(&D, w, lags, 1);
 
     std::cout << "True X" << std::endl << X << std::endl;
     std::cout << "True X" << std::endl << D << std::endl;
