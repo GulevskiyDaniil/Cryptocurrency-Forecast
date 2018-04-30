@@ -179,19 +179,45 @@ std::set<int> GetDeltaSet(const std::set<int>& lags, int d){
 }
 
 
+std::set<int> GetAllNotEmptyDelta(const std::set<int>& lags){
+    std::set<int> deltas;
+    int delta = 0;
+    deltas.insert(delta);
+
+    for (int lag1 : lags) {
+        int lag2 = 0; {
+            delta = lag1 - lag2;
+            if (delta >= 0) {
+                deltas.insert(delta);
+            }
+        }
+    }
+
+    for (int lag1 : lags) {
+        for (int lag2 : lags) {
+            delta = lag1 - lag2;
+            if (delta >= 0) {
+                deltas.insert(delta);
+            }
+        }
+    }
+    return deltas;
+}
+
+
 void ModifyG(Mat* G, const Mat& W, const std::set<int>& lags, int W_idx) {
     double w_0 = -1;
     int T = G->cols();
     int L = *(std::max_element(lags.begin(), lags.end()));
     int m = 1 + L;
+    std::set<int> deltas = GetAllNotEmptyDelta(lags);
 
     for (size_t idx=0; idx<G->rows(); ++idx) {
-        for (size_t jdx=idx; jdx<G->cols(); ++jdx) {
-            size_t t = idx + 1;
-            size_t d = jdx - idx;
-            std::set<int> deltaset = GetDeltaSet(lags, d);
-            double value = 0.0;
-            if (!deltaset.empty()) {
+        size_t t = idx + 1;
+        for (size_t d : deltas) {
+            if ((d + idx) < G->cols()) {
+                std::set<int> deltaset = GetDeltaSet(lags, d);
+                double value = 0.0;
                 for (int l : deltaset) {
                     // std::cout << m << " <= " << t+l << " <= " << T << "; l = " << l << std::endl;
                     if ((m <= (t + l)) && ((t + l) <= T)) {
@@ -207,9 +233,9 @@ void ModifyG(Mat* G, const Mat& W, const std::set<int>& lags, int W_idx) {
                         }
                     }
                 }
+                (*G)(t - 1, t + d - 1) = value;
+                (*G)(t + d - 1, t - 1) = value;
             }
-            (*G)(t - 1, t + d - 1) = value;
-            (*G)(t + d - 1, t - 1) = value;
         }
     }
 }
@@ -238,8 +264,8 @@ void ModifyD(Mat* D, const Mat& W, const std::set<int>& lags, int W_idx) {
                     value += w_sum * W(W_idx,l - 1);
                 }
             }
-        }
         (*D)(t - 1, t - 1) = value;
+        }
     }
 }
 
@@ -248,6 +274,14 @@ void ModifyD(Mat* D, const Mat& W, const std::set<int>& lags, int W_idx) {
 void tests2() {
 
     std::set<int> lags = {1, 4};
+
+    std::cout << "deltas:" << std::endl;
+    auto deltas = GetAllNotEmptyDelta(lags);
+    for (auto el : deltas) {
+        std::cout << el << ",  ";
+    }
+    std::cout << "\n----------" << std::endl;
+
     for (int delta = 0; delta < 6; ++delta) {
         std::cout << "delta = " << delta << std::endl;
         auto deltaset = GetDeltaSet(lags, delta);
@@ -259,8 +293,8 @@ void tests2() {
     }
 
 
-    Mat X(10,10);
-    X << 0,0,0,0,0,0,0,0,0,0,
+    Mat G(10,10);
+    G << 0,0,0,0,0,0,0,0,0,0,
          0,0,0,0,0,0,0,0,0,0,
          0,0,0,0,0,0,0,0,0,0,
          0,0,0,0,0,0,0,0,0,0,
@@ -270,9 +304,6 @@ void tests2() {
          0,0,0,0,0,0,0,0,0,0,
          0,0,0,0,0,0,0,0,0,0,
          0,0,0,0,0,0,0,0,0,0;
-
-
-    // X(0,1) = 100;
 
 
     Mat D(10,10);
@@ -289,17 +320,16 @@ void tests2() {
 
 
 
-    Mat w(2, 4); // 1 if known, 0 if missiing
-    w << 1,1,1,1,
+    Mat W(2, 4); // 1 if known, 0 if missiing
+    W << 1,1,1,1,
          1,2,3,4;
 
-    ModifyG(&X, w, lags, 1);
-    ModifyD(&D, w, lags, 1);
+    ModifyG(&G, W, lags, 1);
+    ModifyD(&D, W, lags, 1);
 
-    std::cout << "True X" << std::endl << X << std::endl;
-    std::cout << "True X" << std::endl << D << std::endl;
-    std::cout << "X rows" << std::endl << X.rows() << std::endl;
-    std::cout << "w"      << std::endl << w << std::endl;
+    std::cout << "G" << std::endl << G << std::endl;
+    std::cout << "D" << std::endl << D << std::endl;
+    std::cout << "W" << std::endl << W << std::endl;
 
 }
 
