@@ -247,6 +247,8 @@ void ModifyD(Mat* D, const Mat& W, const std::set<int>& lags, int W_idx) {
     int L = *(std::max_element(lags.begin(), lags.end()));
     int m = 1 + L;
     double w_sum = 0.0;
+    std::set<int> lags_hat = lags;
+    lags_hat.insert(0);
 
     w_sum += w_0;
     for (int l : lags) {
@@ -257,7 +259,7 @@ void ModifyD(Mat* D, const Mat& W, const std::set<int>& lags, int W_idx) {
     for (size_t idx=0; idx<D->rows(); ++idx) {
         size_t t = idx + 1;
         double value = 0.0;
-        for (int l : lags) {
+        for (int l : lags_hat) {
             if ((m <= (t + l)) && ((t + l) <= T)) {
                 if (l == 0) {
                     value += w_sum * w_0;
