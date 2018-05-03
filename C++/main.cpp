@@ -205,7 +205,7 @@ std::set<int> GetAllNotEmptyDelta(const std::set<int>& lags){
 }
 
 
-void ModifyG(Mat* G, const Mat& W, const std::set<int>& lags, int W_idx) {
+void ModifyG(SpMat* G, const Mat& W, const std::set<int>& lags, int W_idx) {
     double w_0 = -1;
     int T = G->cols();
     int L = *(std::max_element(lags.begin(), lags.end()));
@@ -234,14 +234,17 @@ void ModifyG(Mat* G, const Mat& W, const std::set<int>& lags, int W_idx) {
                         }
                     }
                 }
-                (*G)(t - 1, t + d - 1) = value;
-                (*G)(t + d - 1, t - 1) = value;
+                (*G).coeffRef(t - 1, t + d - 1) = value;
+                // (*G).insert(t + d - 1, t - 1) = value;
+                // (*G)(t - 1, t + d - 1) = value;
+                // (*G)(t + d - 1, t - 1) = value;
             }
         }
     }
+    // (*G) = (*G).selfadjointView<Eigen::Upper>();
 }
 
-void ModifyD(Mat* D, const Mat& W, const std::set<int>& lags, int W_idx) {
+void ModifyD(SpMat* D, const Mat& W, const std::set<int>& lags, int W_idx) {
     double w_0 = -1;
     int T = D->cols();
     int L = *(std::max_element(lags.begin(), lags.end()));
@@ -267,7 +270,8 @@ void ModifyD(Mat* D, const Mat& W, const std::set<int>& lags, int W_idx) {
                     value += w_sum * W(W_idx,l - 1);
                 }
             }
-        (*D)(t - 1, t - 1) = value;
+        (*D).coeffRef(t - 1, t - 1) = value;
+        // (*D)(t - 1, t - 1) = value;
         }
     }
 }
@@ -276,7 +280,7 @@ void ModifyD(Mat* D, const Mat& W, const std::set<int>& lags, int W_idx) {
 
 void tests2() {
 
-    std::set<int> lags = {1, 4};
+    std::set<int> lags = {1, 2, 5};
 
     std::cout << "deltas:" << std::endl;
     auto deltas = GetAllNotEmptyDelta(lags);
@@ -296,41 +300,42 @@ void tests2() {
     }
 
 
-    Mat G(10,10);
-    G << 0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0;
+    // Mat G(10,10);
+    // G << 0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0;
 
 
-    Mat D(10,10);
-    D << 0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0,
-         0,0,0,0,0,0,0,0,0,0;
+    // Mat D(10,10);
+    // D << 0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0,
+    //      0,0,0,0,0,0,0,0,0,0;
 
+    SpMat G(10, 10);
+    SpMat D(10, 10);
 
-
-    Mat W(2, 4); // 1 if known, 0 if missiing
-    W << 1,1,1,1,
-         1,2,3,4;
+    Mat W(2, 5); // 1 if known, 0 if missiing
+    W << 1,1,1,1,1,
+         2,3,0,0,1;
 
     ModifyG(&G, W, lags, 1);
     ModifyD(&D, W, lags, 1);
 
-    std::cout << "G" << std::endl << G << std::endl;
+    std::cout << "G" << std::endl << G.selfadjointView<Eigen::Upper>() << std::endl;
     std::cout << "D" << std::endl << D << std::endl;
     std::cout << "W" << std::endl << W << std::endl;
 
